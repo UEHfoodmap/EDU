@@ -1,1 +1,1 @@
-# UEHfoodmap
+# EDU
