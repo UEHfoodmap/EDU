@@ -2,13 +2,41 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>UEH Food Map</title>
 
 <!-- Fonts -->
 <style>
 @font-face{font-family:'Anton';src:url('Anton-Regular.ttf') format('truetype');font-display:swap}
 @font-face{font-family:'Russo One';src:url('RussoOne-Regular.ttf') format('truetype');font-weight:700;font-display:swap}
+/* --- Universal responsive scaling --- */
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+@media (max-width: 1024px) {
+  .container { max-width: 100%; padding: 0 16px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .thumb img { height: auto; width: 100%; }
+}
+@media (max-width: 768px) {
+  .grid { grid-template-columns: 1fr; }
+  .campusBar, .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .campusBtn { flex: 0 0 auto; }
+  .thumb img { width: 100%; height: auto; }
+  .hero-viewport { max-height: 300px; aspect-ratio: 16/9; }
+}
+@media (max-width: 480px) {
+  .titlebar h1 { font-size: 24px; }
+  .thumb img { height: 160px; }
+  .grid { grid-template-columns: 1fr; }
+  .campusBtn { padding: 6px 10px; font-size: 14px; }
+  .search input { height: 44px; font-size: 15px; }
+}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet"/>
 
@@ -236,6 +264,10 @@ footer{text-align:center;padding:36px 0;color:var(--c-mute);font-family:"Baloo 2
 #modal .dlg-tabpanes{margin-top:12px}
 #modal .dlg-pane{display:none}
 #modal .dlg-pane.active{display:block}
+/* Overview gallery: extra venue photos */
+#modal .ov-gallery{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+@media(min-width:900px){#modal .ov-gallery{grid-template-columns:1fr 1fr 1fr}}
+#modal .ov-gallery img{width:100%;height:auto;max-height:42vh;object-fit:contain;border-radius:10px;display:block}
 /* Auth extras */
 .auth-links{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
 .auth-links .link{background:transparent;border:0;color:#1F3FAF;font-weight:900;cursor:pointer;padding:8px 0}
@@ -567,7 +599,13 @@ function openDetail(r){
         <div class="meta">Menu tham khảo</div>
       </div>
       <div class="dlg-pane" data-pane="overview">
-        <div id="revBox"></div>
+        <div class="ov-gallery">
+          <img src="${imgOf(r.slug+"-2")}" alt="Ảnh ${r.name} (2)" onerror="if(!this.dataset.fbk){this.dataset.fbk=1;this.src=this.src.replace('.jpg','.png');} else { this.style.display='none'; }"/>
+          <img src="${imgOf(r.slug+"-3")}" alt="Ảnh ${r.name} (3)" onerror="if(!this.dataset.fbk){this.dataset.fbk=1;this.src=this.src.replace('.jpg','.png');} else { this.style.display='none'; }"/>
+          <img src="${imgOf(r.slug+"-4")}" alt="Ảnh ${r.name} (4)" onerror="if(!this.dataset.fbk){this.dataset.fbk=1;this.src=this.src.replace('.jpg','.png');} else { this.style.display='none'; }"/>
+          <img src="${imgOf(r.slug+"-5")}" alt="Ảnh ${r.name} (5)" onerror="if(!this.dataset.fbk){this.dataset.fbk=1;this.src=this.src.replace('.jpg','.png');} else { this.style.display='none'; }"/>
+        </div>
+        <div id="revBox" style="margin-top:8px"></div>
       </div>
       <div class="dlg-pane" data-pane="rate">
         <div id="revAction" style="margin-top:12px"></div>
@@ -611,7 +649,11 @@ function openDetail(r){
     if(arr && arr.length){
       box.innerHTML = arr.map(t=>`<div class="msg" style="margin-top:0;white-space:pre-line">${t}</div>`).join('');
     } else {
-      box.innerHTML = `<div class="msg" style="margin-top:0">Chưa có đánh giá. Hãy là người đầu tiên! ✍️</div>`;
+      if (dlgContent.querySelector('.dlg-tab.active')?.dataset.pane === 'overview') {
+        box.innerHTML = `<div class="msg" style="margin-top:0">Chưa có thông tin.</div>`;
+      } else {
+        box.innerHTML = `<div class="msg" style="margin-top:0">Chưa có đánh giá. Hãy là người đầu tiên! ✍️</div>`;
+      }
     }
   }
   // Render review form for rate tab
@@ -633,7 +675,22 @@ function openDetail(r){
         renderReviewsFor(r.slug);
       };
     } else {
-      box.innerHTML = `<div style="margin:12px 0">Vui lòng <b>đăng nhập</b> để gửi đánh giá.</div>`;
+      box.innerHTML = `
+        <div style="margin:12px 0">
+          Vui lòng 
+          <button id="goLogin" style="background:none;border:0;color:#1F3FAF;font-weight:900;cursor:pointer;text-decoration:underline">
+            đăng nhập
+          </button>
+          để gửi đánh giá.
+        </div>`;
+      const go = box.querySelector('#goLogin');
+      if (go) {
+        go.onclick = () => {
+          try { closeModal(); } catch(e){}
+          try { showAuthPane('login'); } catch(e){}
+          try { openAuth(); } catch(e){}
+        };
+      }
     }
   }
   // Pre-render: tổng quan (danh sách) để khi user bấm là có ngay
@@ -895,6 +952,13 @@ document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
   chatInput.value = c.textContent.trim();
   sendChat();
 }));
+// Mobile viewport height adjustment (for 100vh fix)
+function setViewportHeight() {
+  document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+}
+window.addEventListener('resize', setViewportHeight);
+window.addEventListener('orientationchange', setViewportHeight);
+setViewportHeight();
 </script>
 <script id="reviewsInline" type="application/json">{}</script>
 </body>
